@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Phaser Starter</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+  canvas { display: block; margin: 0 auto; }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<script>
+// Tier: Phaser — many entities, physics, tilemaps, camera, sound, particles.
+// See /docs/GAME_BUILDING_PLAYBOOK.md before starting a new idea.
+
+class MainScene extends Phaser.Scene {
+  create() {
+    this.add.rectangle(240, 400, 480, 800, 0x2b4d2b);
+    this.add.text(20, 20, "Tap to spawn — start building here", {
+      fontSize: "18px", color: "#eaffea"
+    });
+
+    this.input.on("pointerdown", (p) => {
+      const dot = this.add.circle(p.x, p.y, 12, 0xffd447);
+      this.tweens.add({ targets: dot, scale: 0, duration: 400, onComplete: () => dot.destroy() });
+    });
+  }
+}
+
+new Phaser.Game({
+  type: Phaser.AUTO,
+  width: 480,
+  height: 800,
+  parent: document.body,
+  backgroundColor: "#2b4d2b",
+  scene: MainScene
+});
+</script>
+</body>
+</html>

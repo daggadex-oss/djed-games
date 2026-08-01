@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Kaplay Starter</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #111; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<script src="https://unpkg.com/kaplay@3001/dist/kaplay.js"></script>
+<script>
+// Tier: Kaplay — fast prototypes, jam-style experiments, playable in an hour.
+// See /docs/GAME_BUILDING_PLAYBOOK.md before starting a new idea.
+
+kaplay({
+  width: 480,
+  height: 800,
+  letterbox: true,
+  background: [43, 77, 43],
+});
+
+loadRoot("https://unpkg.com/kaplay@3001/examples/sprites/");
+
+const player = add([
+  circle(24),
+  pos(center()),
+  color(255, 212, 71),
+  area(),
+  "player",
+]);
+
+onClick(() => {
+  player.moveTo(mousePos(), 40);
+});
+
+add([
+  text("Tap to move — start building here", { size: 20 }),
+  pos(20, 20),
+  color(234, 255, 234),
+]);
+</script>
+</body>
+</html>

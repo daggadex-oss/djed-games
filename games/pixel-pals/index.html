@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#2b4d2b">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>DJed's Pixel Pals</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: #1a2e1a;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  #game { display: block; width: 100%; height: 100%; }
+
+  #startScreen {
+    position: fixed; inset: 0; background: #2b4d2b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #eaffea; text-align: center; z-index: 50;
+  }
+  #startScreen h1 { font-size: 28px; letter-spacing: 1px; margin: 0 0 8px; }
+  #djedEmblem { width: 72px; height: auto; margin: 0 0 14px; image-rendering: pixelated; }
+  #startScreen p { font-size: 14px; color: #b7e2b7; margin: 0 0 24px; max-width: 280px; }
+  .bigBtn {
+    font-family: inherit; font-size: 18px; font-weight: bold;
+    background: #ffd447; color: #4a3200; border: 4px solid #4a3200;
+    border-radius: 10px; padding: 16px 28px; cursor: pointer;
+  }
+  .bigBtn:active { transform: scale(0.95); }
+
+  #hud {
+    position: fixed; top: 10px; left: 10px; right: 10px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    pointer-events: none; z-index: 10;
+  }
+  #counter {
+    background: rgba(20,40,20,0.8); color: #ffd447; border: 3px solid #ffd447;
+    border-radius: 10px; padding: 8px 14px; font-size: 16px; font-weight: bold;
+  }
+  #controls {
+    position: fixed; bottom: 16px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 14px; z-index: 20;
+  }
+  .ctrlBtn {
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 4px solid #4a3200; font-size: 24px;
+    display: flex; align-items: center; justify-content: center;
+    background: #ffd447; color: #4a3200; cursor: pointer;
+  }
+  .ctrlBtn.recording { background: #ff6b6b; border-color: #6b1a1a; }
+  .ctrlBtn:active { transform: scale(0.9); }
+
+  #bubble {
+    position: absolute; background: #fff; color: #333;
+    border: 3px solid #333; border-radius: 10px; padding: 6px 10px;
+    font-size: 15px; font-weight: bold; pointer-events: none;
+    display: none; z-index: 15; white-space: nowrap;
+  }
+
+  #camOverlay {
+    position: fixed; inset: 0; background: #000; z-index: 40;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+  }
+  #camOverlay video { width: 90%; max-width: 480px; border-radius: 12px; transform: scaleX(-1); }
+  #camOverlay .snapBtn {
+    margin-top: 20px; width: 76px; height: 76px; border-radius: 50%;
+    background: #fff; border: 6px solid #ffd447;
+  }
+  #camOverlay .closeBtn {
+    position: absolute; top: 18px; right: 18px; color: #fff;
+    font-size: 30px; background: none; border: none;
+  }
+
+  #keypadOverlay {
+    position: fixed; inset: 0; background: rgba(10,20,10,0.85); z-index: 45;
+    display: none; align-items: center; justify-content: center;
+  }
+  #keypadCard {
+    position: relative; background: #2b4d2b; border: 4px solid #ffd447;
+    border-radius: 18px; padding: 24px 20px; width: 260px; text-align: center;
+    color: #eaffea;
+  }
+  #keypadCard.shake { animation: shakeCard 0.4s; }
+  @keyframes shakeCard {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+  #keypadTitle { font-size: 16px; font-weight: bold; margin-bottom: 14px; }
+  #keypadDots { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
+  #keypadDots span {
+    width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ffd447;
+    display: inline-block; background: transparent;
+  }
+  #keypadDots span.filled { background: #ffd447; }
+  #keypadGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .keyBtn {
+    font-family: inherit; font-size: 20px; font-weight: bold;
+    background: #ffd447; color: #4a3200; border: 3px solid #4a3200;
+    border-radius: 10px; padding: 14px 0; cursor: pointer;
+  }
+  .keyBtn:active { transform: scale(0.92); }
+  .keyBtn.wide { grid-column: span 1; }
+  #keypadCard .closeBtn {
+    position: absolute; top: 8px; right: 12px; color: #eaffea;
+    font-size: 26px; background: none; border: none;
+  }
+
+  #giftRevealOverlay, #memoryBoxOverlay {
+    position: fixed; inset: 0; background: rgba(10,20,10,0.88); z-index: 46;
+    display: none; align-items: center; justify-content: center;
+  }
+  #giftRevealCard {
+    background: #2b4d2b; border: 4px solid #ffd447; border-radius: 18px;
+    padding: 26px 22px; width: 280px; text-align: center; color: #eaffea;
+  }
+  #giftRevealCard img {
+    width: 128px; height: 128px; image-rendering: pixelated;
+    border: 3px solid #ffd447; border-radius: 8px; margin-bottom: 8px;
+  }
+  #giftRevealDate { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
+  #giftRevealActions { display: flex; gap: 10px; justify-content: center; }
+  .revealBtn {
+    font-family: inherit; font-size: 26px; font-weight: bold;
+    background: #ffd447; color: #4a3200; border: 3px solid #4a3200;
+    border-radius: 50%; width: 64px; height: 64px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .revealBtn.secondary { background: transparent; color: #eaffea; border-color: #eaffea; }
+  .revealBtn:active { transform: scale(0.94); }
+
+  #memoryBoxCard {
+    background: #2b4d2b; border: 4px solid #ffd447; border-radius: 18px;
+    padding: 20px; width: 300px; max-height: 70vh; overflow-y: auto;
+    color: #eaffea; position: relative;
+  }
+  #memoryBoxCard h2 { font-size: 16px; margin: 0 0 14px 0; text-align: center; }
+  #memoryBoxCard .closeBtn {
+    position: absolute; top: 8px; right: 12px; color: #eaffea;
+    font-size: 26px; background: none; border: none;
+  }
+  #memoryBoxList { display: flex; flex-direction: column; gap: 10px; }
+  .memoryRow {
+    display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06);
+    border-radius: 10px; padding: 8px;
+  }
+  .memoryRow img {
+    width: 44px; height: 44px; image-rendering: pixelated; border-radius: 6px;
+    border: 2px solid #ffd447; flex-shrink: 0;
+  }
+  .memoryRow .memDate { font-size: 12px; flex: 1; opacity: 0.85; }
+  .memoryRow button {
+    background: #ffd447; color: #4a3200; border: none; border-radius: 50%;
+    width: 34px; height: 34px; font-size: 14px; cursor: pointer; flex-shrink: 0;
+  }
+  #memoryBoxEmpty { text-align: center; font-size: 13px; opacity: 0.7; padding: 10px 0; }
+  #memoryBtn {
+    position: absolute; top: 14px; right: 14px; background: rgba(0,0,0,0.35);
+    border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px;
+    color: #fff; z-index: 20;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <img id="djedEmblem" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAADACAYAAADP/afKAAAB8ElEQVR4nO3dsWnDUBhGUdlkgMwRvIcHSeM2k3iCDJI9QubIBnKtwkaGF3i5nDPAK3T5uw+0LAAAwHMOox5av8/rqLdYlsPpa0ib44hHmJfAcQLHCRwncJzAcQLHCRwncJzAcQLHvYx66PXyO+opBnLBcQLHCRwncJzAAAAAG3bRk7KLZheB4wSOEzhO4DiB4wSOEzhO4DiB4wSOs4uOc8FxAscJHCdwnMAAAAAbdtGTsotmF4HjBI4TOE7gOIHjBI4TOE7gOIHjBI6zi45zwXECxwkcJ3CcwAAAABt20ZOyi2YXgeMEjhM4TuA4geMEjhM4TuA4geMEjrOLjnPBcQLHCRwncJzAccMWHX/t7fM61WLk5/3jX3w7FxwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRwncJzAcQLHCRx39y/Ws/1xm8fu/ZHcBccJHCdwnMBxAscJHCdwnMBxAscJHCdwnMBxAscJHCdwnMBxAscJHCdwnMBxAscJHCcwAADAxg1hOB7nzJA3BgAAAABJRU5ErkJggg==" alt="Djed pillar">
+  <h1>DJed's Pixel Pals</h1>
+  <p>Tap creatures to say hi. Take a photo to make a new friend. Hold the mic to give your friend a voice. Look for the treasure chest!</p>
+  <button class="bigBtn" id="startBtn">Tap to play!</button>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="counter">Friends: 0</div>
+</div>
+<button id="memoryBtn" aria-label="Memory box">📦</button>
+<div id="bubble"></div>
+
+<div id="controls">
+  <button class="ctrlBtn" id="photoBtn" aria-label="Take photo">📷</button>
+  <button class="ctrlBtn" id="micBtn" aria-label="Record voice">🎤</button>
+  <button class="ctrlBtn" id="giftBtn" aria-label="Load treasure">🎁</button>
+  <button class="ctrlBtn" id="refreshBtn" aria-label="Start over">🔄</button>
+</div>
+
+<div id="camOverlay">
+  <button class="closeBtn" id="camClose">×</button>
+  <video id="camVideo" autoplay playsinline muted></video>
+  <button class="snapBtn" id="snapBtn"></button>
+</div>
+
+<div id="keypadOverlay">
+  <div id="keypadCard">
+    <div id="keypadTitle">🔒 What's the password?</div>
+    <div id="keypadDots"><span></span><span></span><span></span><span></span></div>
+    <div id="keypadGrid"></div>
+    <button class="closeBtn" id="keypadClose">×</button>
+  </div>
+</div>
+
+<div id="giftRevealOverlay">
+  <div id="giftRevealCard">
+    <img id="giftRevealImg" src="" alt="Treasure">
+    <div id="giftRevealDate"></div>
+    <div id="giftRevealActions">
+      <button class="revealBtn" id="giftReplayBtn" aria-label="Play again">▶</button>
+      <button class="revealBtn secondary" id="giftDoneBtn" aria-label="Close">✕</button>
+    </div>
+  </div>
+</div>
+
+<div id="memoryBoxOverlay">
+  <div id="memoryBoxCard">
+    <button class="closeBtn" id="memoryBoxClose">×</button>
+    <h2>📦 Memory Box</h2>
+    <div id="memoryBoxEmpty" style="display:none;">No treasures yet.</div>
+    <div id="memoryBoxList"></div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth * devicePixelRatio;
+  H = canvas.height = window.innerHeight * devicePixelRatio;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* ---------- shared memory (Firebase) ----------
+   Fill these in from your Firebase project: console.firebase.google.com >
+   Project settings > General > Your apps > SDK setup and configuration.
+   Use the Realtime Database (not Firestore).
+
+   FAMILY_CODE is a shared secret, not a public identifier — anyone who
+   knows it can read/write this world. Make it long and random, and only
+   share it with Djed's device (e.g. paste it in once, never post it
+   anywhere public). Leave firebaseConfig untouched and the game just
+   falls back to this-device-only memory, same as before. */
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://PASTE_YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "PASTE_YOUR_PROJECT"
+};
+const FAMILY_CODE = "REPLACE_WITH_LONG_RANDOM_STRING";
+
+let fbEnabled = false;
+let fbRef = null;
+let fbMemoryRef = null;
+try {
+  if (firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY" && FAMILY_CODE.indexOf('REPLACE_WITH') !== 0) {
+    firebase.initializeApp(firebaseConfig);
+    fbRef = firebase.database().ref('families/' + FAMILY_CODE + '/entities');
+    fbMemoryRef = firebase.database().ref('families/' + FAMILY_CODE + '/memoryBox');
+    fbEnabled = true;
+  }
+} catch (err) { fbEnabled = false; }
+
+const WORDS = ['Boop!', 'Wow!', 'Tee-hee!', 'Again!', 'Yay!', 'Wheee!', 'Hiya!', 'Pop!'];
+const COLORS = ['#e76f51', '#2a9d8f', '#e9c46a', '#f4a261', '#8ecae6', '#ff70a6'];
+const ACCENT = '#ffd447';
+
+/* Djed's in-game treasure chest passcode. This is just a fun ritual for
+   him, not a real security boundary — it's fine for it to be simple and
+   memorable, unlike FAMILY_CODE above. */
+const CHEST_CODE = "2022";
+const DINO_SPECIES = ['longneck', 'threehorn', 'spikeback', 'rex', 'flyer'];
+const DINO_SIZE_RANGE = {
+  longneck: [70, 90], threehorn: [58, 70], spikeback: [58, 70], rex: [64, 80], flyer: [48, 60]
+};
+
+let entities = [];
+let friendCount = 0;
+let dragTarget = null;
+let selectedEntity = null;
+let audioCtxRef = null;
+
+function getAudioCtx() {
+  if (!audioCtxRef) audioCtxRef = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtxRef;
+}
+
+function goFullscreen() {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+  if (!req) return;
+  try {
+    const result = req.call(el);
+    if (result && result.catch) result.catch(() => {});
+  } catch (err) { }
+}
+
+function saveState() {
+  try {
+    const serializable = entities.map(e => ({
+      type: e.type, x: e.x, y: e.y, size: e.size, color: e.color, species: e.species || null,
+      pixels: e.pixels || null, clip: e.clipDataUrl || null, freq: e.freq
+    }));
+    localStorage.setItem('djedsPixelPals', JSON.stringify(serializable));
+  } catch (err) {
+    showBubble('Memory full! Old friend may not save.', W/2, H*0.3);
+  }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem('djedsPixelPals');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    saved.forEach(s => {
+      const e = makeEntity(s.type, s.x, s.y, s.color, s.size, s.freq, s.species);
+      e.pixels = s.pixels;
+      e.clipDataUrl = s.clip;
+      if (s.type === 'photo' && s.pixels) {
+        const img = new Image();
+        img.src = s.pixels;
+        e.img = img;
+      }
+      entities.push(e);
+      if (s.type === 'photo') friendCount++;
+    });
+    updateCounter();
+  } catch (err) { }
+}
+
+function makeEntity(type, x, y, color, size, freq, species, id) {
+  return {
+    id: id || (Date.now() + '-' + Math.random().toString(36).slice(2)),
+    type, x, y, size: size || 48, color: color || COLORS[Math.floor(Math.random()*COLORS.length)],
+    freq: freq || (220 + Math.random() * 300), species: species || null,
+    bounce: Math.random() * 10, pixels: null, clipDataUrl: null
+  };
+}
+
+function findEntity(id) { return entities.find(e => e.id === id); }
+
+function serializeEntity(e) {
+  return {
+    type: e.type, x: e.x, y: e.y, size: e.size, color: e.color, species: e.species || null,
+    pixels: e.pixels || null, clip: e.clipDataUrl || null, freq: e.freq,
+    hasGift: e.hasGift || false, activeGiftId: e.activeGiftId || null
+  };
+}
+
+function pushEntityRemote(e) {
+  if (!fbEnabled || !e) return;
+  fbRef.child(e.id).set(serializeEntity(e)).catch(() => {});
+}
+
+function removeAllRemote() {
+  if (!fbEnabled) return;
+  fbRef.remove().catch(() => {});
+}
+
+function applyRemoteEntity(id, data) {
+  if (!data) return;
+  let e = findEntity(id);
+  if (!e) {
+    e = makeEntity(data.type, data.x, data.y, data.color, data.size, data.freq, data.species, id);
+    entities.push(e);
+    if (data.type === 'photo') friendCount++;
+  } else {
+    e.x = data.x; e.y = data.y; e.size = data.size; e.color = data.color;
+  }
+  e.pixels = data.pixels;
+  e.clipDataUrl = data.clip;
+  e.hasGift = data.hasGift || false;
+  e.activeGiftId = data.activeGiftId || null;
+  if (data.type === 'photo' && data.pixels) {
+    const img = new Image();
+    img.src = data.pixels;
+    e.img = img;
+  }
+  updateCounter();
+  saveState();
+}
+
+function startRemoteSync() {
+  if (!fbEnabled) return;
+  fbRef.on('child_added', snap => applyRemoteEntity(snap.key, snap.val()));
+  fbRef.on('child_changed', snap => applyRemoteEntity(snap.key, snap.val()));
+  fbRef.on('child_removed', snap => {
+    const wasPhoto = snap.val() && snap.val().type === 'photo';
+    entities = entities.filter(e => e.id !== snap.key);
+    if (wasPhoto) friendCount = Math.max(0, friendCount - 1);
+    updateCounter();
+    saveState();
+  });
+  // backfill: share anything this device already had before syncing was set up
+  setTimeout(() => entities.forEach(pushEntityRemote), 1500);
+}
+
+/* ---------- memory box (dated archive of past treasures) ---------- */
+let memoryBox = []; // {id, pixels, clip, dateAdded, dateOpened}
+
+function saveMemoryBox() {
+  try { localStorage.setItem('djedsPixelPalsMemoryBox', JSON.stringify(memoryBox)); }
+  catch (err) {}
+}
+function loadMemoryBox() {
+  try {
+    const raw = localStorage.getItem('djedsPixelPalsMemoryBox');
+    if (raw) memoryBox = JSON.parse(raw);
+  } catch (err) { memoryBox = []; }
+}
+function pushMemoryRemote(entry) {
+  if (!fbMemoryRef) return;
+  fbMemoryRef.child(entry.id).set(entry).catch(() => {});
+}
+function applyRemoteMemoryEntry(id, data) {
+  if (!data) return;
+  const idx = memoryBox.findIndex(m => m.id === id);
+  const entry = { id, pixels: data.pixels, clip: data.clip, dateAdded: data.dateAdded, dateOpened: data.dateOpened || null };
+  if (idx === -1) memoryBox.push(entry); else memoryBox[idx] = entry;
+  saveMemoryBox();
+  if (memoryBoxOverlay.style.display === 'flex') renderMemoryBox();
+}
+function startMemorySync() {
+  if (!fbMemoryRef) return;
+  fbMemoryRef.on('child_added', snap => applyRemoteMemoryEntry(snap.key, snap.val()));
+  fbMemoryRef.on('child_changed', snap => applyRemoteMemoryEntry(snap.key, snap.val()));
+}
+function formatMemDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function spawnRandomDino(x, y) {
+  const species = DINO_SPECIES[Math.floor(Math.random() * DINO_SPECIES.length)];
+  const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  const [lo, hi] = DINO_SIZE_RANGE[species];
+  const size = lo + Math.random() * (hi - lo);
+  const e = makeEntity('dino', x, y, color, size, null, species);
+  entities.push(e);
+  return e;
+}
+
+function seedWorld() {
+  if (entities.length) return;
+  const d1 = spawnRandomDino(W*0.3, H*0.6);
+  const d2 = spawnRandomDino(W*0.7, H*0.5);
+  const flower = makeEntity('flower', W*0.5, H*0.75, '#ff70a6', 36);
+  entities.push(flower);
+  [d1, d2, flower].forEach(pushEntityRemote);
+}
+
+function ensureChest() {
+  if (entities.some(e => e.type === 'chest')) return;
+  const chest = makeEntity('chest', W*0.5, H*0.32, null, 70);
+  chest.hasGift = false;
+  chest.activeGiftId = null;
+  chest.openProgress = 0;
+  entities.push(chest);
+  saveState();
+  pushEntityRemote(chest);
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#3f6b3f';
+  ctx.fillRect(0, 0, W, H);
+  const tile = 40 * devicePixelRatio;
+  ctx.fillStyle = '#467a46';
+  for (let y = 0; y < H; y += tile) {
+    for (let x = (y/tile % 2 ? tile/2 : 0); x < W; x += tile) {
+      ctx.fillRect(x, y, tile/2, tile/2);
+    }
+  }
+}
+
+function drawCritter(e) {
+  const s = e.size * devicePixelRatio;
+  const b = Math.sin(e.bounce) * 4 * devicePixelRatio;
+  ctx.fillStyle = e.color;
+  ctx.fillRect(e.x - s/2, e.y - s/2 + b, s, s * 0.8);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(e.x - s*0.3, e.y - s*0.15 + b, s*0.18, s*0.18);
+  ctx.fillRect(e.x + s*0.12, e.y - s*0.15 + b, s*0.18, s*0.18);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(e.x - s*0.25, e.y - s*0.1 + b, s*0.08, s*0.08);
+  ctx.fillRect(e.x + s*0.17, e.y - s*0.1 + b, s*0.08, s*0.08);
+  ctx.fillStyle = e.color;
+  ctx.fillRect(e.x - s*0.35, e.y + s*0.65 + b, s*0.2, s*0.15);
+  ctx.fillRect(e.x + s*0.15, e.y + s*0.65 + b, s*0.2, s*0.15);
+}
+
+function drawFlower(e) {
+  const s = e.size * devicePixelRatio;
+  ctx.fillStyle = '#6a994e';
+  ctx.fillRect(e.x - s*0.05, e.y, s*0.1, s*0.6);
+  ctx.fillStyle = e.color;
+  const petals = [[0,-1],[1,0],[0,1],[-1,0]];
+  petals.forEach(([dx,dy]) => ctx.fillRect(e.x + dx*s*0.3 - s*0.15, e.y + dy*s*0.3 - s*0.15, s*0.3, s*0.3));
+  ctx.fillStyle = '#ffd447';
+  ctx.fillRect(e.x - s*0.12, e.y - s*0.12, s*0.24, s*0.24);
+}
+
+function drawPhotoSprite(e) {
+  const s = e.size * devicePixelRatio;
+  const b = Math.sin(e.bounce) * 3 * devicePixelRatio;
+  if (e.img) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(e.img, e.x - s/2, e.y - s/2 + b, s, s);
+    ctx.strokeStyle = '#ffd447';
+    ctx.lineWidth = 3 * devicePixelRatio;
+    ctx.strokeRect(e.x - s/2, e.y - s/2 + b, s, s);
+  }
+}
+
+function drawChest(e) {
+  const x = e.dispX ?? e.x, y = e.dispY ?? e.y, size = e.dispSize ?? e.size;
+  const s = size * devicePixelRatio;
+  const bob = Math.sin(e.bounce * 0.8) * (e.hasGift ? 4 : 1.5) * devicePixelRatio;
+  const openT = e.openProgress || 0; // 0 = closed, 1 = fully open
+  const lidAngle = -openT * 0.9;
+  const baseY = y + bob;
+  ctx.globalAlpha = e.hasGift ? 1 : 0.55;
+
+  // base
+  ctx.fillStyle = '#7a4a26';
+  ctx.fillRect(x - s/2, baseY - s*0.05, s, s*0.55);
+  ctx.strokeStyle = '#4a2c12';
+  ctx.lineWidth = 3 * devicePixelRatio;
+  ctx.strokeRect(x - s/2, baseY - s*0.05, s, s*0.55);
+  ctx.fillStyle = '#ffd447';
+  ctx.fillRect(x - s*0.06, baseY - s*0.05, s*0.12, s*0.55);
+
+  // lid (rotates open around the back-top hinge point)
+  ctx.save();
+  ctx.translate(x, baseY - s*0.05);
+  ctx.rotate(lidAngle);
+  ctx.fillStyle = '#9a6134';
+  ctx.fillRect(-s/2, -s*0.28, s, s*0.28);
+  ctx.strokeStyle = '#4a2c12';
+  ctx.strokeRect(-s/2, -s*0.28, s, s*0.28);
+  ctx.fillStyle = '#ffd447';
+  ctx.beginPath();
+  ctx.arc(0, 0, s*0.06, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+
+  // gentle sparkle when it's holding a surprise and still closed
+  if (e.hasGift && openT === 0) {
+    const twinkle = 0.5 + 0.5 * Math.sin(Date.now() / 260 + e.x);
+    ctx.fillStyle = `rgba(255, 212, 71, ${0.3 + twinkle * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(x + s*0.35, baseY - s*0.35, 3 * devicePixelRatio * (0.6 + twinkle), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x - s*0.3, baseY - s*0.22, 2.4 * devicePixelRatio * (0.6 + twinkle), 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* ---------- dinosaur friends ----------
+   Each species is drawn from the same 40x28 unit grid (matching the
+   approved concept art), so adding a new species later just means
+   adding one more function here plus a name in DINO_SPECIES above. */
+function dinoBox(e, extraDy) {
+  const sW = e.size * devicePixelRatio;
+  const sH = sW * 28 / 40;
+  return { sW, sH, ox: e.x - sW/2, oy: e.y - sH/2 + (extraDy || 0) };
+}
+function rF(box, x0, y0, x1, y1, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(box.ox + x0/40*box.sW, box.oy + y0/28*box.sH, (x1-x0)/40*box.sW, (y1-y0)/28*box.sH);
+}
+function pF(box, pts, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => {
+    const px = box.ox + x/40*box.sW, py = box.oy + y/28*box.sH;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  });
+  ctx.closePath();
+  ctx.fill();
+}
+function eyesF(box, cx, cy) {
+  rF(box, cx-3, cy-2, cx-1, cy, '#fff');
+  rF(box, cx-3, cy-1, cx-2, cy, '#222');
+}
+function rotatePt(px, py, pivotX, pivotY, angle) {
+  const dx = px - pivotX, dy = py - pivotY;
+  const c = Math.cos(angle), sn = Math.sin(angle);
+  return [pivotX + dx*c - dy*sn, pivotY + dx*sn + dy*c];
+}
+
+function drawLongneck(e) {
+  const sway = Math.sin(e.bounce * 0.9) * 2.5;
+  const box = dinoBox(e, Math.sin(e.bounce) * 2 * devicePixelRatio);
+  const c = e.color;
+  rF(box, 16, 16, 32, 24, c);
+  rF(box, 6, 18, 17, 22, c);
+  rF(box, 2, 19, 7, 21, c);
+  [18, 24, 27, 31].forEach(lx => rF(box, lx, 24, lx+3, 27, c));
+  rF(box, 26+sway, 4, 30+sway, 17, c);
+  rF(box, 28+sway, 2, 35+sway, 8, c);
+  eyesF(box, 34+sway, 6);
+}
+
+function drawThreehorn(e) {
+  const nod = Math.sin(e.bounce * 1.4) * 1.2;
+  const box = dinoBox(e, Math.sin(e.bounce) * 2 * devicePixelRatio);
+  const c = e.color, a = ACCENT;
+  rF(box, 14, 12, 30, 23, c);
+  rF(box, 30, 15, 37, 19, c);
+  [17, 23, 27].forEach(lx => rF(box, lx, 23, lx+3, 27, c));
+  rF(box, 4, 10+nod, 15, 21+nod, c);
+  pF(box, [[4,10+nod],[2,14+nod],[6,13+nod]], a);
+  pF(box, [[6,9+nod],[5,3+nod],[8,10+nod]], a);
+  pF(box, [[9,9+nod],[9,2+nod],[12,10+nod]], a);
+  pF(box, [[3,12+nod],[0,12+nod],[3,15+nod]], a);
+  eyesF(box, 13, 13+nod);
+}
+
+function drawSpikeback(e) {
+  const tilt = Math.sin(e.bounce * 0.7) * 0.05;
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  ctx.rotate(tilt);
+  const box = { sW: e.size * devicePixelRatio, sH: e.size * devicePixelRatio * 28/40, ox: -(e.size*devicePixelRatio)/2, oy: -(e.size*devicePixelRatio*28/40)/2 };
+  const c = e.color, a = ACCENT;
+  rF(box, 10, 14, 30, 24, c);
+  rF(box, 4, 15, 11, 20, c);
+  rF(box, 30, 17, 37, 21, c);
+  [12, 17, 22, 27].forEach(sx => pF(box, [[sx,14],[sx+2,7],[sx+4,14]], a));
+  [12, 19, 25].forEach(lx => rF(box, lx, 24, lx+3, 27, c));
+  eyesF(box, 9, 16);
+  ctx.restore();
+}
+
+function drawRex(e) {
+  const stomp = Math.abs(Math.sin(e.bounce * 1.6)) * 3;
+  const box = dinoBox(e, -stomp * devicePixelRatio);
+  const c = e.color, a = ACCENT;
+  rF(box, 14, 8, 26, 22, c);
+  rF(box, 22, 2, 36, 12, c);
+  pF(box, [[30,10],[32,13],[34,10]], a);
+  pF(box, [[24,10],[26,13],[28,10]], a);
+  rF(box, 18, 12, 21, 15, c);
+  rF(box, 4, 16, 15, 20, c);
+  rF(box, 15, 22, 19, 27, c);
+  rF(box, 21, 22, 25, 27, c);
+  eyesF(box, 33, 6);
+}
+
+function drawFlyer(e) {
+  const flap = Math.sin(e.bounce * 4) * 0.5;
+  const hover = Math.sin(e.bounce) * 3 * devicePixelRatio;
+  const box = dinoBox(e, hover);
+  const c = e.color, a = ACCENT;
+  rF(box, 17, 10, 25, 18, c);
+  rF(box, 25, 8, 33, 12, c);
+  pF(box, [[33,9],[38,11],[33,13]], a);
+  const lw = [[17,12],[2,4],[19,16]].map(([x,y]) => x===17&&y===12 ? [x,y] : rotatePt(x, y, 17, 12, flap));
+  const rw = [[25,12],[40,4],[23,16]].map(([x,y]) => x===25&&y===12 ? [x,y] : rotatePt(x, y, 25, 12, -flap));
+  pF(box, lw, c);
+  pF(box, rw, c);
+  rF(box, 19, 18, 22, 22, c);
+  rF(box, 22, 18, 25, 22, c);
+  eyesF(box, 30, 9);
+}
+
+const DINO_DRAW = {
+  longneck: drawLongneck, threehorn: drawThreehorn, spikeback: drawSpikeback,
+  rex: drawRex, flyer: drawFlyer
+};
+function drawDino(e) {
+  const fn = DINO_DRAW[e.species] || drawLongneck;
+  fn(e);
+}
+
+let sparkles = [];
+function burstSparkles(x, y) {
+  for (let i = 0; i < 18; i++) {
+    const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.3;
+    const speed = (1.5 + Math.random() * 2.5) * devicePixelRatio;
+    sparkles.push({
+      x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1.5 * devicePixelRatio,
+      life: 1, color: Math.random() > 0.5 ? '#ffd447' : '#fff'
+    });
+  }
+}
+function drawSparkles() {
+  sparkles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.08 * devicePixelRatio; p.life -= 0.018;
+    ctx.globalAlpha = Math.max(p.life, 0);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - 2*devicePixelRatio, p.y - 2*devicePixelRatio, 4*devicePixelRatio, 4*devicePixelRatio);
+  });
+  ctx.globalAlpha = 1;
+  sparkles = sparkles.filter(p => p.life > 0);
+}
+
+function updateChestSlot(e) {
+  const targetX = e.hasGift ? W * 0.5 : W * 0.87;
+  const targetY = e.hasGift ? H * 0.32 : H * 0.24;
+  const targetSize = e.hasGift ? 78 : 32;
+  if (e.dispX === undefined) { e.dispX = targetX; e.dispY = targetY; e.dispSize = targetSize; }
+  const t = 0.07;
+  e.dispX += (targetX - e.dispX) * t;
+  e.dispY += (targetY - e.dispY) * t;
+  e.dispSize += (targetSize - e.dispSize) * t;
+}
+
+function draw() {
+  drawBackground();
+  entities.forEach(e => {
+    e.bounce += 0.06;
+    if (e.type === 'dino') drawDino(e);
+    else if (e.type === 'critter') drawCritter(e);
+    else if (e.type === 'flower') drawFlower(e);
+    else if (e.type === 'photo') drawPhotoSprite(e);
+    else if (e.type === 'chest') { updateChestSlot(e); drawChest(e); }
+  });
+  drawSparkles();
+  if (selectedEntity) {
+    const s = selectedEntity.size * devicePixelRatio;
+    const pulse = 6 * devicePixelRatio * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3 * devicePixelRatio;
+    ctx.beginPath();
+    ctx.arc(selectedEntity.x, selectedEntity.y, s/1.4 + pulse, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  requestAnimationFrame(draw);
+}
+
+const blocks = {
+  reactToTap(e, screenX, screenY) {
+    playBoop(e.freq);
+    showBubble(WORDS[Math.floor(Math.random()*WORDS.length)], screenX, screenY);
+    if (e.clipDataUrl) {
+      const audio = new Audio(e.clipDataUrl);
+      audio.play().catch(() => showBubble('No sound :(', screenX, screenY));
+    }
+  },
+  captureAndPixelate(videoEl, sizePx) {
+    const grid = 20;
+    const tmp = document.createElement('canvas');
+    tmp.width = grid; tmp.height = grid;
+    const tctx = tmp.getContext('2d');
+    tctx.imageSmoothingEnabled = false;
+    tctx.save();
+    tctx.translate(grid, 0); tctx.scale(-1, 1);
+    tctx.drawImage(videoEl, 0, 0, grid, grid);
+    tctx.restore();
+    const img = new Image();
+    img.src = tmp.toDataURL('image/png');
+    return img;
+  },
+  attachClipToSelected(dataUrl) {
+    let target = selectedEntity;
+    if (!target) {
+      let bestDist = Infinity;
+      entities.forEach(e => {
+        const d = Math.hypot(e.x - W/2, e.y - H/2);
+        if (d < bestDist) { bestDist = d; target = e; }
+      });
+    }
+    if (target) { target.clipDataUrl = dataUrl; saveState(); pushEntityRemote(target); }
+    return target;
+  },
+  resetWorld() {
+    removeAllRemote();
+    entities = [];
+    friendCount = 0;
+    selectedEntity = null;
+    dragTarget = null;
+    updateCounter();
+    seedWorld();
+    saveState();
+  }
+};
+
+function playBoop(freq) {
+  const ac = getAudioCtx();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(freq, ac.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(freq * 1.6, ac.currentTime + 0.12);
+  gain.gain.setValueAtTime(0.15, ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.18);
+  osc.connect(gain).connect(ac.destination);
+  osc.start(); osc.stop(ac.currentTime + 0.2);
+}
+
+function showBubble(text, x, y) {
+  const bubble = document.getElementById('bubble');
+  bubble.textContent = text;
+  bubble.style.left = (x / devicePixelRatio - 20) + 'px';
+  bubble.style.top = (y / devicePixelRatio - 60) + 'px';
+  bubble.style.display = 'block';
+  clearTimeout(showBubble._t);
+  showBubble._t = setTimeout(() => bubble.style.display = 'none', 900);
+}
+
+function updateCounter() {
+  document.getElementById('counter').textContent = 'Friends: ' + friendCount;
+}
+
+function hitTest(x, y) {
+  for (let i = entities.length - 1; i >= 0; i--) {
+    const e = entities[i];
+    const ex = e.type === 'chest' ? (e.dispX ?? e.x) : e.x;
+    const ey = e.type === 'chest' ? (e.dispY ?? e.y) : e.y;
+    const s = (e.type === 'chest' ? (e.dispSize ?? e.size) : e.size) * devicePixelRatio;
+    if (Math.abs(x - ex) < s/2 && Math.abs(y - ey) < s/2) return e;
+  }
+  return null;
+}
+
+canvas.addEventListener('pointerdown', (ev) => {
+  const x = ev.clientX * devicePixelRatio, y = ev.clientY * devicePixelRatio;
+  const hit = hitTest(x, y);
+  if (hit && hit.type === 'chest') {
+    if (hit.openProgress) return; // already mid-open, ignore extra taps
+    if (hit.hasGift) {
+      openKeypadFor(hit);
+    } else {
+      showBubble("Nothing here yet...", x, y);
+    }
+    return;
+  }
+  if (hit) {
+    blocks.reactToTap(hit, x, y);
+    dragTarget = hit;
+    selectedEntity = hit;
+  }
+});
+canvas.addEventListener('pointermove', (ev) => {
+  if (dragTarget) {
+    dragTarget.x = ev.clientX * devicePixelRatio;
+    dragTarget.y = ev.clientY * devicePixelRatio;
+  }
+});
+window.addEventListener('pointerup', () => {
+  if (dragTarget) { saveState(); pushEntityRemote(dragTarget); dragTarget = null; }
+});
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  getAudioCtx();
+  goFullscreen();
+  document.getElementById('startScreen').style.display = 'none';
+  if (fbEnabled) {
+    startRemoteSync();
+    startMemorySync();
+    setTimeout(() => {
+      if (entities.length === 0) seedWorld();
+      ensureChest();
+    }, 1500);
+  } else {
+    seedWorld();
+    ensureChest();
+  }
+});
+
+let camStream = null;
+let captureMode = 'friend'; // 'friend' | 'gift'
+async function openCamera() {
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    const video = document.getElementById('camVideo');
+    video.srcObject = camStream;
+    document.getElementById('camOverlay').style.display = 'flex';
+  } catch (err) {
+    showBubble("No camera :(", W/2, H/2);
+  }
+}
+document.getElementById('photoBtn').addEventListener('click', () => {
+  captureMode = 'friend';
+  openCamera();
+});
+document.getElementById('giftBtn').addEventListener('click', () => {
+  captureMode = 'gift';
+  showBubble('Snap the treasure photo!', W/2, H*0.3);
+  openCamera();
+});
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  document.getElementById('camOverlay').style.display = 'none';
+}
+document.getElementById('camClose').addEventListener('click', stopCam);
+document.getElementById('snapBtn').addEventListener('click', () => {
+  const video = document.getElementById('camVideo');
+  const img = blocks.captureAndPixelate(video, 20);
+  img.onload = () => {
+    if (captureMode === 'gift') {
+      const chest = entities.find(e => e.type === 'chest');
+      if (chest) {
+        pendingGiftPixels = img.src; // staged locally until the voice note finishes
+        showBubble('Now hold the mic...', W/2, H*0.4);
+        setTimeout(() => startGiftRecording(chest), 400);
+      }
+      return;
+    }
+    const e = makeEntity('photo', W/2, H/2, null, 90);
+    e.img = img;
+    e.pixels = img.src;
+    entities.push(e);
+    friendCount++;
+    updateCounter();
+    saveState();
+    pushEntityRemote(e);
+    showBubble('New friend!', W/2, H*0.4);
+  };
+  stopCam();
+});
+
+let mediaRecorder = null, recChunks = [], recStream = null;
+let pendingGiftPixels = null;
+const micBtn = document.getElementById('micBtn');
+const giftBtn = document.getElementById('giftBtn');
+
+function startGiftRecording(chest) {
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    const candidates = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
+    const supported = candidates.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m));
+    const rec = new MediaRecorder(stream, supported ? { mimeType: supported } : undefined);
+    const chunks = [];
+    giftBtn.classList.add('recording');
+    showBubble('Recording... 6s', W/2, H*0.3);
+    rec.ondataavailable = e => chunks.push(e.data);
+    rec.onstop = () => {
+      giftBtn.classList.remove('recording');
+      const actualType = rec.mimeType || supported || 'audio/webm';
+      const blob = new Blob(chunks, { type: actualType });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const entry = {
+          id: 'g' + Date.now() + '-' + Math.random().toString(36).slice(2),
+          pixels: pendingGiftPixels, clip: reader.result,
+          dateAdded: Date.now(), dateOpened: null
+        };
+        memoryBox.push(entry);
+        saveMemoryBox();
+        pushMemoryRemote(entry);
+        pendingGiftPixels = null;
+        chest.hasGift = true;
+        chest.activeGiftId = entry.id;
+        saveState();
+        pushEntityRemote(chest);
+        showBubble('Treasure ready!', W/2, H*0.4);
+      };
+      reader.readAsDataURL(blob);
+      stream.getTracks().forEach(t => t.stop());
+    };
+    rec.start();
+    setTimeout(() => { if (rec.state === 'recording') rec.stop(); }, 6000);
+  }).catch(() => showBubble("No mic :(", W/2, H/2));
+}
+
+async function startRecording() {
+  try {
+    recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const candidates = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
+    const supported = candidates.find(m => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m));
+    mediaRecorder = new MediaRecorder(recStream, supported ? { mimeType: supported } : undefined);
+    recChunks = [];
+    mediaRecorder.ondataavailable = (e) => recChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const actualType = mediaRecorder.mimeType || supported || 'audio/webm';
+      const blob = new Blob(recChunks, { type: actualType });
+      const reader = new FileReader();
+      reader.onload = () => {
+        blocks.attachClipToSelected(reader.result);
+        showBubble('Got it!', W/2, H*0.4);
+      };
+      reader.readAsDataURL(blob);
+      recStream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start();
+    micBtn.classList.add('recording');
+    setTimeout(() => { if (mediaRecorder && mediaRecorder.state === 'recording') stopRecording(); }, 3000);
+  } catch (err) {
+    showBubble("No mic :(", W/2, H/2);
+  }
+}
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  micBtn.classList.remove('recording');
+}
+micBtn.addEventListener('pointerdown', startRecording);
+micBtn.addEventListener('pointerup', stopRecording);
+micBtn.addEventListener('pointerleave', stopRecording);
+
+/* hold the refresh button for ~1.2s to confirm — avoids an accidental
+   wipe of his saved voices/photos from one stray tap */
+let refreshTimer = null;
+const refreshBtn = document.getElementById('refreshBtn');
+function refreshStart() {
+  refreshBtn.classList.add('recording');
+  refreshTimer = setTimeout(() => {
+    blocks.resetWorld();
+    showBubble('Fresh start!', W/2, H*0.4);
+    refreshBtn.classList.remove('recording');
+  }, 1200);
+}
+function refreshCancel() {
+  clearTimeout(refreshTimer);
+  refreshBtn.classList.remove('recording');
+}
+refreshBtn.addEventListener('pointerdown', refreshStart);
+refreshBtn.addEventListener('pointerup', refreshCancel);
+refreshBtn.addEventListener('pointerleave', refreshCancel);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+/* ---------- treasure chest keypad ---------- */
+let keypadTarget = null;
+let keypadEntered = '';
+const keypadOverlay = document.getElementById('keypadOverlay');
+const keypadCard = document.getElementById('keypadCard');
+const keypadDots = document.getElementById('keypadDots');
+const keypadGrid = document.getElementById('keypadGrid');
+
+function buildKeypad() {
+  const layout = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  keypadGrid.innerHTML = '';
+  layout.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'keyBtn';
+    btn.textContent = k;
+    if (k === '') btn.style.visibility = 'hidden';
+    btn.addEventListener('click', () => handleKeypadPress(k));
+    keypadGrid.appendChild(btn);
+  });
+}
+buildKeypad();
+
+function updateDots() {
+  keypadDots.querySelectorAll('span').forEach((d, i) => d.classList.toggle('filled', i < keypadEntered.length));
+}
+function handleKeypadPress(k) {
+  if (k === '') return;
+  if (k === '⌫') { keypadEntered = keypadEntered.slice(0, -1); updateDots(); return; }
+  if (keypadEntered.length >= 4) return;
+  keypadEntered += k;
+  updateDots();
+  if (keypadEntered.length === 4) setTimeout(checkKeypad, 150);
+}
+function checkKeypad() {
+  if (keypadEntered === CHEST_CODE) {
+    const chest = keypadTarget;
+    closeKeypad();
+    openChest(chest);
+  } else {
+    keypadCard.classList.add('shake');
+    setTimeout(() => {
+      keypadCard.classList.remove('shake');
+      keypadEntered = '';
+      updateDots();
+    }, 400);
+  }
+}
+function openKeypadFor(chest) {
+  keypadTarget = chest;
+  keypadEntered = '';
+  updateDots();
+  keypadOverlay.style.display = 'flex';
+}
+function closeKeypad() {
+  keypadOverlay.style.display = 'none';
+  keypadTarget = null;
+}
+document.getElementById('keypadClose').addEventListener('click', closeKeypad);
+
+function openChest(chest) {
+  const start = performance.now();
+  const duration = 500;
+  function animateLid(now) {
+    chest.openProgress = Math.min(1, (now - start) / duration);
+    if (chest.openProgress < 1) requestAnimationFrame(animateLid);
+    else revealGift(chest);
+  }
+  requestAnimationFrame(animateLid);
+}
+
+let revealAudio = null;
+function revealGift(chest) {
+  const entry = memoryBox.find(m => m.id === chest.activeGiftId);
+  burstSparkles(chest.dispX ?? chest.x, (chest.dispY ?? chest.y) - (chest.dispSize ?? chest.size) * devicePixelRatio * 0.3);
+  setTimeout(() => { chest.openProgress = 0; }, 1200);
+  if (!entry) return; // shouldn't happen, but don't crash the chest animation if it does
+  document.getElementById('giftRevealImg').src = entry.pixels;
+  document.getElementById('giftRevealDate').textContent = 'Left for you on ' + formatMemDate(entry.dateAdded);
+  giftRevealOverlay.style.display = 'flex';
+  playReveal(entry.clip);
+
+  document.getElementById('giftReplayBtn').onclick = () => playReveal(entry.clip);
+  document.getElementById('giftDoneBtn').onclick = () => {
+    giftRevealOverlay.style.display = 'none';
+    if (revealAudio) { revealAudio.pause(); revealAudio = null; }
+    entry.dateOpened = Date.now();
+    saveMemoryBox();
+    pushMemoryRemote(entry);
+    chest.hasGift = false;
+    chest.activeGiftId = null;
+    saveState();
+    pushEntityRemote(chest);
+  };
+}
+function playReveal(clip) {
+  if (!clip) return;
+  if (revealAudio) revealAudio.pause();
+  revealAudio = new Audio(clip);
+  revealAudio.play().catch(() => {});
+}
+
+/* ---------- memory box UI ---------- */
+const memoryBoxOverlay = document.getElementById('memoryBoxOverlay');
+const giftRevealOverlay = document.getElementById('giftRevealOverlay');
+function renderMemoryBox() {
+  const list = document.getElementById('memoryBoxList');
+  const empty = document.getElementById('memoryBoxEmpty');
+  list.innerHTML = '';
+  const sorted = [...memoryBox].sort((a, b) => b.dateAdded - a.dateAdded);
+  empty.style.display = sorted.length ? 'none' : 'block';
+  sorted.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'memoryRow';
+    const img = document.createElement('img');
+    img.src = entry.pixels;
+    const date = document.createElement('div');
+    date.className = 'memDate';
+    date.textContent = formatMemDate(entry.dateAdded) + (entry.dateOpened ? '' : ' • new');
+    const playBtn = document.createElement('button');
+    playBtn.textContent = '▶️';
+    playBtn.addEventListener('click', () => playReveal(entry.clip));
+    row.appendChild(img); row.appendChild(date); row.appendChild(playBtn);
+    list.appendChild(row);
+  });
+}
+document.getElementById('memoryBtn').addEventListener('click', () => {
+  renderMemoryBox();
+  memoryBoxOverlay.style.display = 'flex';
+});
+document.getElementById('memoryBoxClose').addEventListener('click', () => {
+  memoryBoxOverlay.style.display = 'none';
+  if (revealAudio) { revealAudio.pause(); revealAudio = null; }
+});
+
+loadState();
+loadMemoryBox();
+draw();
+</script>
+</body>
+</html>
