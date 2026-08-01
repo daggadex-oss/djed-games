@@ -44,15 +44,16 @@
   }
   #counter {
     background: rgba(20,40,20,0.8); color: #ffd447; border: 3px solid #ffd447;
-    border-radius: 10px; padding: 8px 14px; font-size: 16px; font-weight: bold;
+    border-radius: 10px; padding: calc(8px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
+    font-size: calc(16px * var(--ui-scale, 1)); font-weight: bold;
   }
   #controls {
-    position: fixed; bottom: 16px; left: 0; right: 0;
-    display: flex; justify-content: center; gap: 14px; z-index: 20;
+    position: fixed; bottom: calc(16px * var(--ui-scale, 1)); left: 0; right: 0;
+    display: flex; justify-content: center; gap: calc(14px * var(--ui-scale, 1)); z-index: 20;
   }
   .ctrlBtn {
-    width: 64px; height: 64px; border-radius: 50%;
-    border: 4px solid #4a3200; font-size: 24px;
+    width: calc(64px * var(--ui-scale, 1)); height: calc(64px * var(--ui-scale, 1)); border-radius: 50%;
+    border: 4px solid #4a3200; font-size: calc(24px * var(--ui-scale, 1));
     display: flex; align-items: center; justify-content: center;
     background: #ffd447; color: #4a3200; cursor: pointer;
   }
@@ -86,7 +87,8 @@
   }
   #keypadCard {
     position: relative; background: #2b4d2b; border: 4px solid #ffd447;
-    border-radius: 18px; padding: 24px 20px; width: 260px; text-align: center;
+    border-radius: 18px; padding: calc(24px * var(--ui-scale, 1)) calc(20px * var(--ui-scale, 1));
+    width: clamp(260px, 65vw, 420px); text-align: center;
     color: #eaffea;
   }
   #keypadCard.shake { animation: shakeCard 0.4s; }
@@ -95,24 +97,24 @@
     25% { transform: translateX(-8px); }
     75% { transform: translateX(8px); }
   }
-  #keypadTitle { font-size: 16px; font-weight: bold; margin-bottom: 14px; }
+  #keypadTitle { font-size: calc(16px * var(--ui-scale, 1)); font-weight: bold; margin-bottom: 14px; }
   #keypadDots { display: flex; justify-content: center; gap: 12px; margin-bottom: 16px; }
   #keypadDots span {
-    width: 16px; height: 16px; border-radius: 50%; border: 2px solid #ffd447;
+    width: calc(16px * var(--ui-scale, 1)); height: calc(16px * var(--ui-scale, 1)); border-radius: 50%; border: 2px solid #ffd447;
     display: inline-block; background: transparent;
   }
   #keypadDots span.filled { background: #ffd447; }
   #keypadGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .keyBtn {
-    font-family: inherit; font-size: 20px; font-weight: bold;
+    font-family: inherit; font-size: calc(20px * var(--ui-scale, 1)); font-weight: bold;
     background: #ffd447; color: #4a3200; border: 3px solid #4a3200;
-    border-radius: 10px; padding: 14px 0; cursor: pointer;
+    border-radius: 10px; padding: calc(14px * var(--ui-scale, 1)) 0; cursor: pointer;
   }
   .keyBtn:active { transform: scale(0.92); }
   .keyBtn.wide { grid-column: span 1; }
   #keypadCard .closeBtn {
     position: absolute; top: 8px; right: 12px; color: #eaffea;
-    font-size: 26px; background: none; border: none;
+    font-size: calc(26px * var(--ui-scale, 1)); background: none; border: none;
   }
 
   #giftRevealOverlay, #memoryBoxOverlay {
@@ -121,18 +123,19 @@
   }
   #giftRevealCard {
     background: #2b4d2b; border: 4px solid #ffd447; border-radius: 18px;
-    padding: 26px 22px; width: 280px; text-align: center; color: #eaffea;
+    padding: calc(26px * var(--ui-scale, 1)) calc(22px * var(--ui-scale, 1));
+    width: clamp(280px, 65vw, 440px); text-align: center; color: #eaffea;
   }
   #giftRevealCard img {
-    width: 128px; height: 128px; image-rendering: pixelated;
+    width: clamp(128px, 30vw, 220px); height: auto; aspect-ratio: 1; image-rendering: pixelated;
     border: 3px solid #ffd447; border-radius: 8px; margin-bottom: 8px;
   }
-  #giftRevealDate { font-size: 13px; opacity: 0.75; margin-bottom: 16px; }
+  #giftRevealDate { font-size: calc(13px * var(--ui-scale, 1)); opacity: 0.75; margin-bottom: 16px; }
   #giftRevealActions { display: flex; gap: 10px; justify-content: center; }
   .revealBtn {
-    font-family: inherit; font-size: 26px; font-weight: bold;
+    font-family: inherit; font-size: calc(26px * var(--ui-scale, 1)); font-weight: bold;
     background: #ffd447; color: #4a3200; border: 3px solid #4a3200;
-    border-radius: 50%; width: 64px; height: 64px; line-height: 1;
+    border-radius: 50%; width: calc(64px * var(--ui-scale, 1)); height: calc(64px * var(--ui-scale, 1)); line-height: 1;
     display: flex; align-items: center; justify-content: center; cursor: pointer;
   }
   .revealBtn.secondary { background: transparent; color: #eaffea; border-color: #eaffea; }
@@ -140,32 +143,32 @@
 
   #memoryBoxCard {
     background: #2b4d2b; border: 4px solid #ffd447; border-radius: 18px;
-    padding: 20px; width: 300px; max-height: 70vh; overflow-y: auto;
+    padding: calc(20px * var(--ui-scale, 1)); width: clamp(300px, 60vw, 460px); max-height: 70vh; overflow-y: auto;
     color: #eaffea; position: relative;
   }
-  #memoryBoxCard h2 { font-size: 16px; margin: 0 0 14px 0; text-align: center; }
+  #memoryBoxCard h2 { font-size: calc(16px * var(--ui-scale, 1)); margin: 0 0 14px 0; text-align: center; }
   #memoryBoxCard .closeBtn {
     position: absolute; top: 8px; right: 12px; color: #eaffea;
-    font-size: 26px; background: none; border: none;
+    font-size: calc(26px * var(--ui-scale, 1)); background: none; border: none;
   }
   #memoryBoxList { display: flex; flex-direction: column; gap: 10px; }
   .memoryRow {
     display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.06);
-    border-radius: 10px; padding: 8px;
+    border-radius: 10px; padding: calc(8px * var(--ui-scale, 1));
   }
   .memoryRow img {
-    width: 44px; height: 44px; image-rendering: pixelated; border-radius: 6px;
+    width: calc(44px * var(--ui-scale, 1)); height: calc(44px * var(--ui-scale, 1)); image-rendering: pixelated; border-radius: 6px;
     border: 2px solid #ffd447; flex-shrink: 0;
   }
-  .memoryRow .memDate { font-size: 12px; flex: 1; opacity: 0.85; }
+  .memoryRow .memDate { font-size: calc(12px * var(--ui-scale, 1)); flex: 1; opacity: 0.85; }
   .memoryRow button {
     background: #ffd447; color: #4a3200; border: none; border-radius: 50%;
-    width: 34px; height: 34px; font-size: 14px; cursor: pointer; flex-shrink: 0;
+    width: calc(34px * var(--ui-scale, 1)); height: calc(34px * var(--ui-scale, 1)); font-size: calc(14px * var(--ui-scale, 1)); cursor: pointer; flex-shrink: 0;
   }
-  #memoryBoxEmpty { text-align: center; font-size: 13px; opacity: 0.7; padding: 10px 0; }
+  #memoryBoxEmpty { text-align: center; font-size: calc(13px * var(--ui-scale, 1)); opacity: 0.7; padding: 10px 0; }
   #memoryBtn {
     position: absolute; top: 14px; right: 14px; background: rgba(0,0,0,0.35);
-    border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px;
+    border: none; border-radius: 50%; width: calc(40px * var(--ui-scale, 1)); height: calc(40px * var(--ui-scale, 1)); font-size: calc(18px * var(--ui-scale, 1));
     color: #fff; z-index: 20;
   }
 </style>
@@ -233,11 +236,17 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 let W, H;
+let SCALE = 1;
 function resize() {
   W = canvas.width = window.innerWidth * devicePixelRatio;
   H = canvas.height = window.innerHeight * devicePixelRatio;
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
+  // 400px is roughly a phone's CSS width — the reference the whole game was tuned at.
+  // Larger screens (tablets) scale everything up proportionally instead of staying phone-sized.
+  const shortSide = Math.min(window.innerWidth, window.innerHeight);
+  SCALE = Math.min(2.1, Math.max(1, shortSide / 400));
+  document.documentElement.style.setProperty('--ui-scale', SCALE);
 }
 window.addEventListener('resize', resize);
 resize();
@@ -445,7 +454,7 @@ function spawnRandomDino(x, y) {
   const species = DINO_SPECIES[Math.floor(Math.random() * DINO_SPECIES.length)];
   const color = COLORS[Math.floor(Math.random() * COLORS.length)];
   const [lo, hi] = DINO_SIZE_RANGE[species];
-  const size = lo + Math.random() * (hi - lo);
+  const size = (lo + Math.random() * (hi - lo)) * SCALE;
   const e = makeEntity('dino', x, y, color, size, null, species);
   entities.push(e);
   return e;
@@ -455,14 +464,14 @@ function seedWorld() {
   if (entities.length) return;
   const d1 = spawnRandomDino(W*0.3, H*0.6);
   const d2 = spawnRandomDino(W*0.7, H*0.5);
-  const flower = makeEntity('flower', W*0.5, H*0.75, '#ff70a6', 36);
+  const flower = makeEntity('flower', W*0.5, H*0.75, '#ff70a6', 36 * SCALE);
   entities.push(flower);
   [d1, d2, flower].forEach(pushEntityRemote);
 }
 
 function ensureChest() {
   if (entities.some(e => e.type === 'chest')) return;
-  const chest = makeEntity('chest', W*0.5, H*0.32, null, 70);
+  const chest = makeEntity('chest', W*0.5, H*0.32, null, 70 * SCALE);
   chest.hasGift = false;
   chest.activeGiftId = null;
   chest.openProgress = 0;
@@ -711,7 +720,7 @@ function drawSparkles() {
 function updateChestSlot(e) {
   const targetX = e.hasGift ? W * 0.5 : W * 0.87;
   const targetY = e.hasGift ? H * 0.32 : H * 0.24;
-  const targetSize = e.hasGift ? 78 : 32;
+  const targetSize = (e.hasGift ? 78 : 32) * SCALE;
   if (e.dispX === undefined) { e.dispX = targetX; e.dispY = targetY; e.dispSize = targetSize; }
   const t = 0.07;
   e.dispX += (targetX - e.dispX) * t;
@@ -911,7 +920,7 @@ document.getElementById('snapBtn').addEventListener('click', () => {
       }
       return;
     }
-    const e = makeEntity('photo', W/2, H/2, null, 90);
+    const e = makeEntity('photo', W/2, H/2, null, 90 * SCALE);
     e.img = img;
     e.pixels = img.src;
     entities.push(e);
